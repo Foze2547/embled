@@ -1,0 +1,77 @@
+#include <Arduino.h>
+
+#define BUZZER     18
+#define BUTTON     35
+#define LED        23
+#define NOTE_B3    247
+#define NOTE_C4    262
+#define NOTE_D4    294
+#define NOTE_E4    330
+#define NOTE_F4    349
+#define NOTE_G4    392
+#define NOTE_A4    440
+#define NOTE_B4    494
+#define NOTE_C5    523
+
+int santa_melody[] = {
+  NOTE_G4,
+  NOTE_E4, NOTE_F4, NOTE_G4, NOTE_G4, NOTE_G4,
+  NOTE_A4, NOTE_B4, NOTE_C5, NOTE_C5, NOTE_C5,
+  NOTE_E4, NOTE_F4, NOTE_G4, NOTE_G4, NOTE_G4,
+  NOTE_A4, NOTE_G4, NOTE_F4, NOTE_F4,
+  NOTE_E4, NOTE_G4, NOTE_C4, NOTE_E4,
+  NOTE_D4, NOTE_F4, NOTE_B3,
+  NOTE_C4
+};
+
+int santa_tempo[] = {
+  8,
+  8, 8, 4, 4, 4,
+  8, 8, 4, 4, 4,
+  8, 8, 4, 4, 4,
+  8, 8, 4, 2,
+  4, 4, 4, 4,
+  4, 2, 4,
+  1
+};
+
+volatile float speed = 6.0; // ช้ามาก
+volatile bool buttonPressed = false; // เก็บสถานะการกดปุ่ม
+
+void IRAM_ATTR onButton() {
+  //if (!buttonPressed) { // ตรวจสอบว่าปุ่มถูกกดหรือไม่
+    speed -= 1.0;
+    if (speed < 1.0) { // เร็วมาก
+      speed = 6.0;
+    }
+    Serial.print("speed : ");
+    Serial.println(speed);
+    buttonPressed = true;
+  
+}
+
+void setup() {
+  pinMode(BUTTON, INPUT);
+  pinMode(BUZZER, OUTPUT);
+  pinMode(LED, OUTPUT);
+  attachInterrupt(digitalPinToInterrupt(BUTTON), onButton, FALLING);
+  ledcSetup(0, 5000, 8); // กำหนดขาของ LEDC, ความถี่ (Hz), ขนาดบิตข้อมูล
+  ledcAttachPin(LED, 0);
+  Serial.begin(9600);
+}
+
+void loop() {
+ // if (buttonPressed) { // ตรวจสอบว่าปุ่มถูกกดหรือไม่
+    //buttonPressed = false; // รีเซ็ตสถานะปุ่ม
+    for (int thisNote = 0; thisNote < sizeof(santa_melody) / sizeof(santa_melody[0]); thisNote++) {
+      int noteDurationValue = (int)(1000 / santa_tempo[thisNote] * speed);
+      tone(BUZZER, santa_melody[thisNote], noteDurationValue);
+
+      int pauseBetweenNotes = (int)(noteDurationValue * 1.30);
+      delay(pauseBetweenNotes);
+
+      noTone(BUZZER);
+    }
+    ledcWrite(0, 128);
+  
+}
